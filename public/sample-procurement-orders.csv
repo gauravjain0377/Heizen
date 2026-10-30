@@ -1,0 +1,13 @@
+supplier,item,qty,price,contract,market,approver,expiry_days,plant
+Kaveri Packaging,5-ply corrugated box,12000,41.8,38.5,38.0,R. Sen,200,Pune
+Aarav Edibles,Palm oil 15kg,800,1840,1760,1750,R. Sen,120,Hosur
+Sunrise Labels,Shrink label roll,300,2290,,1980,M. Iyer,0,Jaipur
+Sunrise Labels,Shrink label roll,300,2290,,1980,M. Iyer,0,Jaipur
+Metro Freight,Jaipur to Delhi trip,40,17800,16500,16200,,90,Jaipur
+Himal Spices,Cardamom 5kg,120,7400,7400,7350,R. Sen,300,Hosur
+Bolt Pallets,HDPE pallet,500,640,,585,M. Iyer,0,Pune
+Aarav Edibles,Palm oil 15kg,600,1760,1760,1750,R. Sen,120,Hosur
+Greenline Cartons,Mono carton,20000,6.9,6.9,6.9,R. Sen,12,Pune
+Apex Adhesives,Hot melt adhesive 25kg,90,4850,4500,4400,R. Sen,45,Pune
+Kaveri Packaging,5-ply corrugated box,8500,42.2,38.5,38.0,,200,Kolkata
+

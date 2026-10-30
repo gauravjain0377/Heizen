@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Leakage Radar | a prototype for Heizen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+/* Theme tokens, light first then dark */
+:root{--bg:#EDF1F5;--panel:#fff;--ink:#10263B;--mute:#5E7287;--line:#D6DEE7;--leak:#D9480F;--leak-bg:#FDEBE1;--ok:#0B8A7A;--ok-bg:#DDF3EF;--warn:#B7791F;--warn-bg:#FBF1DA;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0C1824;--panel:#13263A;--ink:#E6EEF6;--mute:#90A5BA;--line:#24405B;--leak:#FF8A57;--leak-bg:#3A2218;--ok:#3CD2BE;--ok-bg:#0F3A37;--warn:#F0B84C;--warn-bg:#3A2F14;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0C1824;--panel:#13263A;--ink:#E6EEF6;--mute:#90A5BA;--line:#24405B;--leak:#FF8A57;--leak-bg:#3A2218;--ok:#3CD2BE;--ok-bg:#0F3A37;--warn:#F0B84C;--warn-bg:#3A2F14;color-scheme:dark}
+*{box-sizing:border-box}
+html{height:100%}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.5 "Bricolage Grotesque",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--ok);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 60px}
+header{display:flex;flex-wrap:wrap;gap:16px;align-items:end;justify-content:space-between;padding:18px 0 22px}
+h1{font-size:clamp(30px,5vw,52px);line-height:1.02;margin:0;font-weight:800;letter-spacing:-.03em;max-width:15ch}
+.sub{color:var(--mute);max-width:46ch;margin:10px 0 0}
+.big{background:var(--ink);color:var(--bg);border-radius:22px;padding:18px 22px;min-width:270px}
+.big small{opacity:.7;display:block}
+.big b{font-size:42px;font-weight:800;letter-spacing:-.03em;display:block;line-height:1.1}
+.big .rec{color:#3CD2BE;font-weight:600}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.btn{background:var(--ok);color:#fff;border:0;border-radius:999px;padding:10px 20px;font-weight:600}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.tabs{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px}
+.tabs button{border:0;background:none;border-radius:999px;padding:8px 16px}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
+.grid{display:grid;grid-template-columns:1.25fr 1fr;gap:16px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:560px}
+th{text-align:left;color:var(--mute);font-weight:400;font-size:13px;padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:10px 8px;border-bottom:1px solid var(--line)}
+tr.row{position:relative;cursor:pointer}
+tr.row:hover td{background:var(--bg)}
+tr.row.sel td{background:var(--bg)}
+tr.row td:first-child{border-left:4px solid transparent}
+tr.row.hit td:first-child{border-left-color:var(--leak)}
+tr.row.scanning td{background:var(--warn-bg);transition:background .25s}
+.tag{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12.5px;margin:1px 4px 1px 0}
+.t-price,.t-off,.t-dup{background:var(--leak-bg);color:var(--leak)}
+.t-appr,.t-renew{background:var(--warn-bg);color:var(--warn)}
+.t-ok{background:var(--ok-bg);color:var(--ok)}
+.amt{font-weight:600;color:var(--leak)}
+h3{margin:0 0 8px;font-size:19px;letter-spacing:-.01em}
+.why{color:var(--mute);margin:4px 0 12px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;margin:6px 0 10px}
+.seg button{border:0;background:none;padding:5px 14px;border-radius:999px}
+.seg button[aria-pressed="true"]{background:var(--ok);color:#fff}
+pre{white-space:pre-wrap;font:inherit;background:var(--bg);border-radius:12px;padding:14px;margin:0 0 10px;border:1px solid var(--line)}
+.path{display:flex;gap:8px;margin:6px 0 12px;flex-wrap:wrap}
+.path div{flex:1;min-width:90px;border-radius:12px;background:var(--bg);padding:8px 10px}
+.path b{display:block;font-size:17px}
+.sl{display:grid;grid-template-columns:110px 1fr 40px;gap:10px;align-items:center;margin:6px 0}
+.sl input{accent-color:var(--ok)}
+.score{height:10px;border-radius:6px;background:var(--line);overflow:hidden;margin-top:6px}
+.score i{display:block;height:100%;background:var(--ok);transition:width .35s}
+.q{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:14px}
+.q .card.best{border:2px solid var(--ok)}
+.hide{display:none}
+.foot{color:var(--mute);margin-top:28px;font-size:13px;max-width:70ch}
+#ins{display:grid;gap:16px}#ins.hide{display:none}
+.br{display:grid;grid-template-columns:150px 1fr 80px;gap:10px;align-items:center;margin:6px 0}
+.br i{display:block;height:12px;border-radius:6px;background:var(--leak);min-width:3px}.br.ok i{background:var(--ok)}
+.wk{display:flex;gap:8px;flex-wrap:wrap}.wk div{flex:1;min-width:130px;background:var(--bg);border-radius:12px;padding:10px}.wk b{display:block;color:var(--ok)}
+.conn{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:18px}
+.conn span.n{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:999px;padding:4px 12px;color:var(--mute);transition:all .3s}
+.conn span.n i{width:8px;height:8px;border-radius:50%;background:var(--line)}
+.conn span.n.on{color:var(--ok);border-color:var(--ok);background:var(--ok-bg)}
+.conn span.n.on i{background:var(--ok)}
+.conn .cov{margin-left:auto;font-weight:800;font-size:20px}
+.chat{margin:12px 0}
+.msg{max-width:92%;padding:8px 12px;border-radius:14px;margin:6px 0;background:var(--bg)}
+.msg.a{background:var(--ok-bg);color:var(--ink)}
+.msg.s{margin-left:auto;background:var(--warn-bg)}
+.msg small{display:block;color:var(--mute)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Find the money your suppliers are quietly keeping.</h1>
+      <p class="sub">A working prototype of Heizen's idea: map the messy procurement data first, then let agents catch leakage, plan the negotiation and compare quotes against your own policy.</p>
+    </div>
+    <div class="big" aria-live="polite">
+      <small>Value leakage found</small>
+      <b id="total">₹0</b>
+      <small><span class="rec" id="rec">₹0 recoverable</span> and <span id="exp">₹0</span> at risk</small>
+      <small>Locked in by agents: <b id="won" style="display:inline;font-size:inherit">₹0</b></small>
+    </div>
+  </header>
+
+  <div class="bar">
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="leak">Leakage scan</button>
+      <button role="tab" aria-selected="false" data-tab="rfq">Quote comparison</button><button role="tab" aria-selected="false" data-tab="ins">Insights</button>
+    </div>
+    <button class="btn" id="scan">Run scan</button>
+    <button class="btn ghost" id="up">Upload your CSV</button><input type="file" id="file" accept=".csv" class="hide">
+    <button class="btn ghost" id="theme">Switch theme</button>
+  </div>
+
+  <!-- Connected systems: Heizen plugs into every system before building agents -->
+  <div class="conn" id="conn"><span class="n"><i></i>Emails</span><span class="n"><i></i>Sheets</span><span class="n"><i></i>ERP</span><span class="n"><i></i>Contracts</span><span class="n"><i></i>Supplier portal</span><span class="cov" id="cov" title="Share of the real workflow the agents can see">22% workflow coverage</span></div>
+
+  <!-- Tab 1: leakage scan plus negotiation agent -->
+  <section id="leak" class="grid">
+    <div class="card scroll">
+      <table>
+        <thead><tr><th>PO</th><th>Supplier and item</th><th>Qty</th><th>Paid</th><th>Findings</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div class="card" id="detail"><h3>Negotiation agent</h3><p class="why">Run the scan, then pick a flagged purchase order. The agent reads the evidence and drafts the supplier outreach.</p></div>
+  </section>
+
+  <!-- Tab 2: RFQ comparison scored by policy weights -->
+  <section id="rfq" class="hide">
+    <div class="card">
+      <h3>RFQ: 5-ply corrugated box, 12,000 units</h3>
+      <p class="why">Set what your policy values. The ranking updates and the agent explains the pick.</p>
+      <div class="sl"><label for="wp">Price</label><input id="wp" type="range" min="0" max="10" value="6"><span id="vp">6</span></div>
+      <div class="sl"><label for="wr">Reliability</label><input id="wr" type="range" min="0" max="10" value="3"><span id="vr">3</span></div>
+      <div class="sl"><label for="wl">Lead time</label><input id="wl" type="range" min="0" max="10" value="2"><span id="vl">2</span></div>
+      <div class="q" id="quotes"></div>
+      <p id="why" class="why"></p>
+    </div>
+  </section>
+
+  <!-- Insights: anomalies, supplier benchmark, rollout plan -->
+  <section id="ins" class="hide">
+    <div class="card"><h3>Price anomalies</h3><p class="why">Deviation of price paid from contract (or market if no contract). Orange bars are above the 2 percent limit.</p><div id="anom"></div></div>
+    <div class="card"><h3>Supplier benchmark</h3><p class="why">Recoverable leakage by supplier, so you know who to call first.</p><div id="bench"></div></div>
+    <div class="card"><h3>From diagnostic to production in 8 weeks</h3><div class="wk" id="plan"></div></div>
+  </section>
+
+  <p class="foot">Prototype by Gaurav Jain for Heizen. Data is synthetic. Every finding comes from a visible rule (contract variance, off-contract price vs market, duplicate orders, approvals, expiring terms), so a procurement team can inspect it. Nothing here is a black box.</p>
+</div>
+
+<script>
+// Synthetic purchase orders: price paid, contract price (null = none), market benchmark, approver, contract expiry in days
+let POS=[
+ {id:"PO-4101",s:"Kaveri Packaging",i:"5-ply corrugated box",q:12000,p:41.8,c:38.5,m:38.0,a:"R. Sen",x:200},
+ {id:"PO-4107",s:"Aarav Edibles",i:"Palm oil, 15 kg tin",q:800,p:1840,c:1760,m:1750,a:"R. Sen",x:120},
+ {id:"PO-4110",s:"Sunrise Labels",i:"Shrink label roll",q:300,p:2290,c:null,m:1980,a:"M. Iyer",x:0},
+ {id:"PO-4111",s:"Sunrise Labels",i:"Shrink label roll",q:300,p:2290,c:null,m:1980,a:"M. Iyer",x:0},
+ {id:"PO-4115",s:"Metro Freight",i:"Jaipur to Delhi trip",q:40,p:17800,c:16500,m:16200,a:null,x:90},
+ {id:"PO-4118",s:"Himal Spices",i:"Cardamom, 5 kg",q:120,p:7400,c:7400,m:7350,a:"R. Sen",x:300},
+ {id:"PO-4120",s:"Bolt Pallets",i:"HDPE pallet",q:500,p:640,c:null,m:585,a:"M. Iyer",x:0},
+ {id:"PO-4123",s:"Aarav Edibles",i:"Palm oil, 15 kg tin",q:600,p:1760,c:1760,m:1750,a:"R. Sen",x:120},
+ {id:"PO-4126",s:"Greenline Cartons",i:"Mono carton",q:20000,p:6.9,c:6.9,m:6.9,a:"R. Sen",x:12},
+ {id:"PO-4130",s:"Kaveri Packaging",i:"5-ply corrugated box",q:6000,p:38.5,c:38.5,m:38.0,a:"R. Sen",x:200}];
+const inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
+const APPROVAL_LIMIT=200000;   // orders above this need a named approver
+
+// Rule engine: returns findings for one PO
+function analyze(r,idx){
+  const f=[], spend=r.p*r.q;
+  // Rule 1: paid above contract price
+  if(r.c&&r.p>r.c*1.02) f.push({t:"price",l:"Above contract",amt:(r.p-r.c)*r.q,rec:true,why:`Paid ${inr(r.p)} against a contract price of ${inr(r.c)}.`,target:r.c});
+  // Rule 2: no contract and paid above market benchmark
+  if(!r.c&&r.p>r.m*1.03) f.push({t:"off",l:"Off contract",amt:(r.p-r.m)*r.q,rec:true,why:`No contract in place. Market benchmark is ${inr(r.m)}, we paid ${inr(r.p)}.`,target:r.m});
+  // Rule 3: identical order to the same supplier earlier in the list
+  if(POS.slice(0,idx).some(o=>o.s===r.s&&o.i===r.i&&o.q===r.q)) f.push({t:"dup",l:"Duplicate order",amt:spend,rec:true,why:`Same supplier, item and quantity as an earlier order. Likely a double purchase.`,target:0});
+  // Rule 4: large order without an approver
+  if(spend>APPROVAL_LIMIT&&!r.a) f.push({t:"appr",l:"No approval",amt:spend,rec:false,why:`${inr(spend)} order with no named approver. Policy limit is ${inr(APPROVAL_LIMIT)}.`});
+  // Rule 5: contract about to expire, price protection ends
+  if(r.c&&r.x<30) f.push({t:"renew",l:"Contract expiring",amt:spend*0.04,rec:false,why:`Contract ends in ${r.x} days. Typical price drift after expiry is about 4 percent.`});
+  return f;
+}
+let FIND=POS.map(analyze);
+let state={scanned:0,sel:null,tone:"firm"};
+
+function renderRows(){
+  document.getElementById("rows").innerHTML=POS.map((r,k)=>{
+    const done=k<state.scanned, f=FIND[k];
+    const tags=!done?'<span class="tag" style="color:var(--mute)">Waiting</span>':f.length?f.map(x=>`<span class="tag t-${x.t}">${x.l}</span>`).join(""):'<span class="tag t-ok">Clean</span>';
+    return `<tr class="row ${done&&f.length?"hit":""} ${state.sel===k?"sel":""}" data-k="${k}" tabindex="0">
+      <td>${r.id}</td><td><b>${r.s}</b><br><span style="color:var(--mute)">${r.i}</span></td><td>${r.q.toLocaleString("en-IN")}</td><td>${inr(r.p*r.q)}</td><td>${tags}</td></tr>`}).join("");
+}
+function totals(){
+  let rec=0,exp=0;
+  FIND.slice(0,state.scanned).flat().forEach(x=>x.rec?rec+=x.amt:exp+=x.amt);
+  total.textContent=inr(rec+exp); document.getElementById("rec").textContent=inr(rec)+" recoverable"; document.getElementById("exp").textContent=inr(exp);
+}
+// Connect each system in turn, then raise workflow coverage to 99 percent
+function connect(){
+  const ns=[...document.querySelectorAll("#conn .n")];
+  ns.forEach(n=>n.classList.remove("on"));cov.textContent="22% workflow coverage";
+  ns.forEach((n,i)=>setTimeout(()=>{n.classList.add("on");if(i===ns.length-1)cov.textContent="99% workflow coverage"},i*260));
+}
+// Insights tab: anomaly bars, supplier benchmark, rollout plan
+function renderIns(){
+  anom.innerHTML=POS.map(r=>{const ref=r.c||r.m,d=(r.p-ref)/ref*100;return `<div class="br ${d>2?"":"ok"}"><span>${r.id} ${r.s.split(" ")[0]}</span><i style="width:${Math.min(100,Math.max(0,d)*6)}%"></i><b>${d.toFixed(1)}%</b></div>`}).join("");
+  const by={};FIND.forEach((fs,k)=>fs.filter(x=>x.rec).forEach(x=>by[POS[k].s]=(by[POS[k].s]||0)+x.amt));
+  const rows=Object.entries(by).sort((a,b)=>b[1]-a[1]),top=rows.length?rows[0][1]:1;
+  bench.innerHTML=rows.length?rows.map(([s,v])=>`<div class="br"><span>${s}</span><i style="width:${v/top*100}%"></i><b>${inr(v)}</b></div>`).join(""):"<p class='why'>No recoverable leakage found.</p>";
+  plan.innerHTML=[["Weeks 1 to 2","Workflow discovery and data mapping"],["Week 3","ROI ranking of leakage sources"],["Weeks 4 to 5","Agent development on your systems"],["Week 6","QA and edge case testing"],["Weeks 7 to 8","Production in your cloud"]].map(p=>`<div><b>${p[0]}</b>${p[1]}</div>`).join("");
+}
+// CSV upload: map flexible column names, then rebuild and rescan
+up.onclick=()=>file.click();
+file.onchange=()=>{const fr=new FileReader();fr.onload=()=>{
+  const L=fr.result.split(/\r?\n/).filter(Boolean).map(l=>l.split(",").map(c=>c.replace(/^"|"$/g,"").trim()));
+  const h=L[0].map(x=>x.toLowerCase()),ix=(re,not)=>h.findIndex(x=>re.test(x)&&!(not&&not.test(x)));
+  const I={s:ix(/supplier|vendor/),i:ix(/item|desc|material/),q:ix(/qty|quant/),c:ix(/contract/),m:ix(/market|bench/),a:ix(/approv/),x:ix(/expir|days/),p:ix(/paid|unit|rate|price/,/contract|market/)};
+  if(I.s<0||I.q<0||I.p<0){alert("Need columns for supplier, quantity and price paid.");return}
+  const num=v=>v===undefined||v===""||isNaN(+v)?null:+v;
+  POS=L.slice(1).map((r,k)=>({id:"UP-"+(k+1),s:r[I.s],i:I.i<0?"Item":r[I.i],q:num(r[I.q])||0,p:num(r[I.p])||0,c:I.c<0?null:num(r[I.c]),m:num(r[I.m])||num(r[I.p]),a:I.a<0?"on file":(r[I.a]||null),x:num(r[I.x])??365}));
+  FIND=POS.map(analyze);state.scanned=0;state.sel=null;renderRows();totals();renderIns();document.getElementById("detail").innerHTML="<h3>Negotiation agent</h3><p class='why'>Loaded "+POS.length+" orders. Press Run scan.</p>";
+};fr.readAsText(file.files[0])};
+// Animated scan: reveal one PO at a time
+document.getElementById("scan").onclick=()=>{
+  state.scanned=0;state.sel=null;state.won=0;won.textContent="₹0";renderRows();totals();connect();
+  const step=()=>{ if(state.scanned<POS.length){state.scanned++;renderRows();totals();setTimeout(step,matchMedia("(prefers-reduced-motion:reduce)").matches?0:320)} else{const k=FIND.findIndex(f=>f.some(x=>x.rec));select(k)} };
+  step();
+};
+document.getElementById("rows").onclick=e=>{const tr=e.target.closest("tr");if(tr)select(+tr.dataset.k)};
+document.getElementById("rows").onkeydown=e=>{if(e.key==="Enter"){const tr=e.target.closest("tr");if(tr)select(+tr.dataset.k)}};
+
+// Negotiation agent: builds a path and a drafted email from the finding
+function select(k){
+  state.sel=k;renderRows();
+  const r=POS[k],f=FIND[k].find(x=>x.rec)||FIND[k][0],d=document.getElementById("detail");
+  if(k>=state.scanned||!f){d.innerHTML='<h3>Negotiation agent</h3><p class="why">Nothing to negotiate on this order.</p>';return}
+  let body="";
+  if(f.rec&&f.t!=="dup"){
+    const ask=f.target,mid=(r.p+ask)/2;
+    body=`<div class="path"><div>Paid<b>${inr(r.p)}</b></div><div>Fallback<b>${inr(mid)}</b></div><div>Target<b>${inr(ask)}</b></div></div>
+    <p class="why">Recovery if we hit target: <b class="amt">${inr(f.amt)}</b> on this order.</p>
+    <div class="seg"><button data-tone="firm" aria-pressed="${state.tone==="firm"}">Firm</button><button data-tone="partner" aria-pressed="${state.tone==="partner"}">Partnership</button></div>
+    <pre id="mail">${mail(r,f,ask,mid)}</pre><button class="btn" id="sim">Let the agent negotiate</button> <button class="btn ghost" id="copy">Copy draft</button><div class="chat" id="chat" aria-live="polite"></div>`;
+  } else if(f.t==="dup"){
+    body=`<p class="why">Recommended action: hold payment, confirm receipt of both consignments, request a credit note for ${inr(f.amt)}.</p>
+    <pre id="mail">Hi team,\n\nWe see two identical orders for ${r.i} (${r.q} units) from your side. Please confirm whether both were shipped. If not, kindly issue a credit note for ${inr(f.amt)}.\n\nThanks</pre><button class="btn" id="copy">Copy draft</button>`;
+  } else body=`<p class="why">This is a risk, not recoverable cash. Route to the category owner for approval review before the next order.</p>`;
+  d.innerHTML=`<h3>${r.s}: ${f.l}</h3><p class="why">${f.why}</p>${body}`;
+  d.querySelectorAll("[data-tone]").forEach(b=>b.onclick=()=>{state.tone=b.dataset.tone;select(k)});
+  const sb=d.querySelector("#sim");if(sb)sb.onclick=()=>negotiate(r,f,sb);
+  const c=d.querySelector("#copy");if(c)c.onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText(d.querySelector("#mail").textContent);c.textContent="Copied"};
+}
+// Supplier memory kept in this browser only
+const loadMem=()=>{try{return JSON.parse(localStorage.getItem("lr_mem")||"{}")}catch(e){return {}}};
+const saveMem=(s,end,flex)=>{try{const m=loadMem();m[s]={end,flex};localStorage.setItem("lr_mem",JSON.stringify(m))}catch(e){}};
+// Simulated supplier negotiation: each supplier has a flexibility, so outcomes differ per vendor
+function negotiate(r,f,btn){
+  btn.disabled=true;const mem=loadMem()[r.s],T=f.target,flex=mem?mem.flex:0.55+(r.s.length%4)*0.1;
+  const c1=r.p-(r.p-T)*flex*0.4,mid=(r.p+T)/2,end=r.p-(r.p-T)*flex,gain=(r.p-end)*r.q;
+  const M=[
+   ["a","Agent",`Order ${r.id} was billed at ${inr(r.p)}. ${r.c?"Our contract says "+inr(T):"Market is "+inr(T)}. Please correct to ${inr(T)}.`],
+   ["s",r.s,`Input costs went up. We can do ${inr(c1)}.`],
+   ["a","Agent",`We can commit to the next two orders at volume if you meet ${inr(mid)}.`],
+   ["s",r.s,`Agreed at ${inr(end)} with the volume commitment.`],
+   ["a","Agent",`Saving ${inr(gain)}. Sent for human approval before anything is final.`]];
+  if(mem)M.unshift(["a","Supplier memory",`Last time ${r.s} settled at ${inr(mem.end)} per unit. Opening with that anchor.`]);
+  const box=document.getElementById("chat");box.innerHTML="";
+  M.forEach((m,i)=>setTimeout(()=>{
+    box.insertAdjacentHTML("beforeend",`<div class="msg ${m[0]}"><small>${m[1]}</small>${m[2]}</div>`);
+    if(i===M.length-1)box.insertAdjacentHTML("beforeend",`<button class="btn" id="ok">Approve ${inr(gain)}</button>`),document.getElementById("ok").onclick=e=>{state.won=(state.won||0)+gain;saveMem(r.s,end,flex);won.textContent=inr(state.won);e.target.textContent="Approved and sent";e.target.disabled=true};
+  },i*650));
+}
+function mail(r,f,ask,mid){
+  const first=state.tone==="firm"?`We reviewed order ${r.id} and the price of ${inr(r.p)} per unit does not match ${r.c?"our agreed contract":"current market rates"}. We expect ${inr(ask)}.`:`Thanks for the steady supply on ${r.i}. While reviewing ${r.id} we noticed the unit price of ${inr(r.p)} is above ${r.c?"our contract price":"the market range"}, and we would like to fix it together.`;
+  const close=state.tone==="firm"?`Please send a corrected invoice or credit note within 5 working days. If ${inr(ask)} is not workable, we can discuss ${inr(mid)} as a transition price.`:`Could you confirm ${inr(ask)}? If that is hard right now, ${inr(mid)} for this order would be a good start, and we can commit to a longer volume plan.`;
+  return `Hi ${r.s.split(" ")[0]} team,\n\n${first}\n\n${close}\n\nRegards,\nProcurement`;
+}
+
+// Quote comparison: min-max normalised score with user weights
+const Q=[{n:"Kaveri Packaging",p:38.5,r:94,l:14},{n:"Orbit Boxes",p:36.2,r:81,l:21},{n:"Deccan Pack",p:39.9,r:97,l:9}];
+function renderQ(){
+  const w={p:+wp.value,r:+wr.value,l:+wl.value};vp.textContent=w.p;vr.textContent=w.r;vl.textContent=w.l;
+  const sum=(w.p+w.r+w.l)||1, mn=k=>Math.min(...Q.map(x=>x[k])), mx=k=>Math.max(...Q.map(x=>x[k]));
+  const norm=(v,k,inv)=>{const a=mn(k),b=mx(k);const s=b===a?1:(v-a)/(b-a);return inv?1-s:s};
+  const sc=Q.map(x=>({...x,s:(w.p*norm(x.p,"p",1)+w.r*norm(x.r,"r",0)+w.l*norm(x.l,"l",1))/sum*100}));
+  const best=sc.reduce((a,b)=>b.s>a.s?b:a);
+  quotes.innerHTML=sc.map(x=>`<div class="card ${x===best?"best":""}"><b>${x.n}</b>${x===best?' <span class="tag t-ok">Best fit</span>':""}
+    <p class="why">${inr(x.p)} per unit<br>${x.r}% on time, ${x.l} day lead<br>${x.r<85?'<span class="tag t-appr">Needs approval: reliability under 85%</span>':""}</p>
+    <b>${Math.round(x.s)}</b> of 100<div class="score"><i style="width:${x.s}%"></i></div></div>`).join("");
+  const sav=(Math.max(...Q.map(x=>x.p))-best.p)*12000;
+  why.textContent=`${best.n} wins under these weights. Against the highest quote it saves ${inr(sav)} on this RFQ.`;
+}
+["wp","wr","wl"].forEach(id=>document.getElementById(id).oninput=renderQ);
+
+// Tabs and theme
+document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("[data-tab]").forEach(x=>x.setAttribute("aria-selected",x===b));
+  leak.classList.toggle("hide",b.dataset.tab!=="leak");rfq.classList.toggle("hide",b.dataset.tab!=="rfq");ins.classList.toggle("hide",b.dataset.tab!=="ins");
+});
+document.getElementById("theme").onclick=()=>{const e=document.documentElement,dark=e.dataset.theme?e.dataset.theme==="dark":matchMedia("(prefers-color-scheme:dark)").matches;e.dataset.theme=dark?"light":"dark"};
+renderRows();renderQ();renderIns();
+</script>
+</body>
+</html>
