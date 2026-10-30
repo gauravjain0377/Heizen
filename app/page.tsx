@@ -22,7 +22,8 @@ import {
   BarChart3, 
   Sun, 
   Moon, 
-  FileDown 
+  FileDown,
+  ExternalLink 
 } from "lucide-react";
 
 export default function Home() {
@@ -210,6 +211,31 @@ export default function Home() {
   return (
     <div className={`min-h-screen transition-colors duration-200 ${darkMode ? "dark bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-900"}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Top Header Bar / Engineer Badge */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6 pb-4 border-b border-slate-200/60 dark:border-slate-800/80">
+          <a
+            href="https://gauravjain.vercel.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-teal-500/50 hover:bg-teal-50/50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-all shadow-xs cursor-pointer"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span>
+            </span>
+            <span className="text-slate-500 dark:text-slate-400">Built by</span>
+            <span className="font-bold text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
+              Gaurav Jain
+            </span>
+            <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </a>
+
+          <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            <span>Forward-Deployed Sourcing Prototype</span>
+          </div>
+        </div>
+
         {/* Navigation & Header */}
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
           <div>
@@ -489,7 +515,16 @@ export default function Home() {
         {/* Footer */}
         <footer className="mt-12 pt-6 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400 flex flex-col sm:flex-row justify-between items-center gap-4">
           <div>
-            Built by Gaurav Jain for Heizen &bull; Synthetic dataset modeled on FMCG &amp; packaging supply chains.
+            Built by{" "}
+            <a
+              href="https://gauravjain.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-slate-800 dark:text-slate-200 hover:text-teal-600 dark:hover:text-teal-400 underline underline-offset-2 transition-colors"
+            >
+              Gaurav Jain
+            </a>{" "}
+            for Heizen &bull; Synthetic dataset modeled on FMCG &amp; packaging supply chains.
           </div>
           <div className="flex items-center gap-3">
             <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
